@@ -1,0 +1,30 @@
+name: Build Example
+
+on:
+  push:
+    branches: [ main, dev ]
+  pull_request:
+    branches: [ main, dev ]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Emscripten
+      uses: mymindstorm/setup-emsdk@v14
+
+    - name: Get wabt 1.0.39
+      uses: mwilliamson/setup-wabt-action@v3
+      with:
+        wabt-version: "1.0.39"
+
+    - name: Build and run example
+      working-directory: example
+      run: ./run.sh

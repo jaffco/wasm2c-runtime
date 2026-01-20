@@ -6,8 +6,10 @@
 
 // Fix for mmap-related functions on non-Windows systems
 #ifndef _WIN32
+#define _GNU_SOURCE
 #include <sys/mman.h>
 #include <unistd.h>
+#include <signal.h>
 #endif
 
 #endif // WASM_RT_COMPAT_H
