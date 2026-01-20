@@ -1,94 +1,69 @@
-/*
- * Project:     embedded-wasm-apps
- * Description: Run sandboxed TinyGo, AssemblyScript, Rust, CPP apps on embedded/IoT devices
- * Author:      Volodymyr Shymanskyy
- * Date:        30.11.2021
- */
+#include <iostream>
+#include "../include/wasm-rt.h"
+#include "build/app.h"
 
-#include "wasm-app.h"
-
-w2c_app wasm_app;
-
-#if defined(PARTICLE)
-    #include "Particle.h"
-
-    SYSTEM_THREAD(ENABLED)
-
-    void w2c_wiring_publish(struct w2c_wiring*, u32 offset) {
-        Particle.publish((const char*)wasm_app.w2c_memory.data + offset);
-    }
-#elif defined(ARDUINO)
-    #include "Arduino.h"
-#else
-    #error "Platform not supported"
-#endif
-
-void w2c_wiring_stopWdt(struct w2c_wiring*) {
-#if defined(ESP8266)
-    ESP.wdtDisable();
-    *((volatile uint32_t*) 0x60000900) &= ~(1); // Hardware WDT OFF
-#elif defined(ESP32)
-    disableCore0WDT();
-#endif
+// Native implementation of add for comparison
+int native_add(int a, int b) {
+  return a + b;
 }
 
-void w2c_wiring_delay(struct w2c_wiring*, u32 t) {
-    delay(t);
-}
+int main() {
+  std::cout << "=== WASM2C Runtime Example ===" << std::endl;
+  std::cout << std::endl;
 
-u32 w2c_wiring_millis(struct w2c_wiring*) {
-    return millis();
-}
+  // Initialize WASM runtime
+  std::cout << "Step 1: Initializing WASM runtime..." << std::endl;
+  wasm_rt_init();
+  std::cout << "  ✓ WASM runtime initialized" << std::endl;
+  std::cout << std::endl;
 
-void w2c_wiring_pinMode(struct w2c_wiring*, u32 pin, u32 mode) {
-    switch (mode) {
-    case 0: pinMode(pin, INPUT);        break;
-    case 1: pinMode(pin, OUTPUT);       break;
-    case 2: pinMode(pin, INPUT_PULLUP); break;
-    }
-}
+  // Initialize the WASM module
+  std::cout << "Step 2: Initializing WASM module (app)..." << std::endl;
+  w2c_app app_instance;
+  wasm2c_app_instantiate(&app_instance);
+  std::cout << "  ✓ WASM module instantiated" << std::endl;
+  std::cout << std::endl;
 
-void w2c_wiring_digitalWrite(struct w2c_wiring*, u32 pin, u32 value) {
-    digitalWrite(pin, value);
-}
+  // Test values
+  int a = 15;
+  int b = 27;
 
-void w2c_wiring_print(struct w2c_wiring*, u32 offset, u32 len) {
-    Serial.write((const uint8_t*)wasm_app.w2c_memory.data + offset, len);
-}
+  std::cout << "Step 3: Running comparison test..." << std::endl;
+  std::cout << "  Test inputs: a = " << a << ", b = " << b << std::endl;
+  std::cout << std::endl;
 
-void os_print_last_error(const char* msg) {
-    Serial.println(msg);
-    for(;;) { delay(100); }  // Wait forever
-}
+  // Call native version
+  std::cout << "  → Calling native add(" << a << ", " << b << ")..." << std::endl;
+  int native_result = native_add(a, b);
+  std::cout << "    Result: " << native_result << std::endl;
+  std::cout << std::endl;
 
-__attribute__((weak))
-void w2c_app_0x5Finitialize(w2c_app*) {}
+  // Call WASM version
+  std::cout << "  → Calling WASM add(" << a << ", " << b << ")..." << std::endl;
+  int wasm_result = w2c_app_add(&app_instance, a, b);
+  std::cout << "    Result: " << wasm_result << std::endl;
+  std::cout << std::endl;
 
-__attribute__((weak))
-void w2c_app_0x5Fstart(w2c_app*) {}
+  // Compare results
+  std::cout << "Step 4: Verifying results..." << std::endl;
+  if (native_result == wasm_result) {
+    std::cout << "  ✓ SUCCESS: Both implementations returned " << native_result << std::endl;
+  } else {
+    std::cout << "  ✗ FAILURE: Results differ!" << std::endl;
+    std::cout << "    Native: " << native_result << std::endl;
+    std::cout << "    WASM:   " << wasm_result << std::endl;
+    return 1;
+  }
+  std::cout << std::endl;
 
-void setup()
-{
-    Serial.begin(115200);
-#if defined(PARTICLE)
-    Particle.connect();
-    waitUntil(Particle.connected);
-#endif
-    delay(2000);
+  // Cleanup
+  std::cout << "Step 5: Cleaning up..." << std::endl;
+  wasm2c_app_free(&app_instance);
+  wasm_rt_free();
+  std::cout << "  ✓ Resources freed" << std::endl;
+  std::cout << std::endl;
 
-    Serial.println("Initializing WebAssembly...");
-
-    wasm_rt_init();
-    wasm2c_app_instantiate(&wasm_app, NULL);
-
-    w2c_app_0x5Finitialize(&wasm_app);
-    w2c_app_0x5Fstart(&wasm_app);
-
-    w2c_app_setup(&wasm_app);
-}
-
-void loop()
-{
-    w2c_app_loop(&wasm_app);
+  std::cout << "=== Test Complete ===" << std::endl;
+  return 0;
 }
 
