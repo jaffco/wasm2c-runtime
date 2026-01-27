@@ -19,6 +19,11 @@
 #include <assert.h>
 #include <stdio.h>
 
+// Custom allocators for SDRAM
+extern void* sdram_calloc(size_t nmemb, size_t size);
+extern void sdram_dealloc(void* ptr);
+extern void* sdram_realloc(void* ptr, size_t size);
+
 #ifdef _WIN32
 #include <windows.h>
 #else

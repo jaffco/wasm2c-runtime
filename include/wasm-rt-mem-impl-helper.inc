@@ -93,7 +93,7 @@ void MEMORY_API_NAME(wasm_rt_allocate_memory)(MEMORY_TYPE* memory,
   }
   memory->data = addr;
 #else
-  void* addr = calloc(byte_length, 1);
+  void* addr = sdram_calloc(1, byte_length);
   if (!addr) {
     os_print_last_error("memory allocation failed.");
     abort();
@@ -122,7 +122,7 @@ static uint64_t MEMORY_API_NAME(grow_memory_impl)(MEMORY_TYPE* memory,
     return (uint64_t)-1;
   }
 #else
-  MEMORY_CELL_TYPE new_data = realloc((void*)memory->data, new_size);
+  MEMORY_CELL_TYPE new_data = sdram_realloc((void*)memory->data, new_size);
   if (new_data == NULL) {
     return (uint64_t)-1;
   }
@@ -159,7 +159,7 @@ void MEMORY_API_NAME(wasm_rt_free_memory)(MEMORY_TYPE* memory) {
       get_alloc_size_for_mmap(memory->max_pages, memory->is64);
   os_munmap((void*)memory->data, mmap_size);  // ignore error
 #else
-  free((void*)memory->data);
+  sdram_dealloc((void*)memory->data);
 #endif
 }
 

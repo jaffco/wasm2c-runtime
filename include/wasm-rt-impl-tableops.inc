@@ -42,11 +42,11 @@ void WASM_RT_TABLE_APINAME(wasm_rt_allocate)(WASM_RT_TABLE_TYPE* table,
                                              uint32_t max_elements) {
   table->size = elements;
   table->max_size = max_elements;
-  table->data = calloc(table->size, sizeof(WASM_RT_TABLE_ELEMENT_TYPE));
+  table->data = sdram_calloc(table->size, sizeof(WASM_RT_TABLE_ELEMENT_TYPE));
 }
 
 void WASM_RT_TABLE_APINAME(wasm_rt_free)(WASM_RT_TABLE_TYPE* table) {
-  free(table->data);
+  sdram_dealloc(table->data);
 }
 
 uint32_t WASM_RT_TABLE_APINAME(wasm_rt_grow)(WASM_RT_TABLE_TYPE* table,
